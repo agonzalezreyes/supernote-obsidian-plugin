@@ -135,6 +135,21 @@ async function renderMarkViewer(
 			return canvas.toDataURL('image/png');
 		};
 
+		// The default thumbnail renderer decodes markNote's empty layers,
+		// so previews are blank. Render each PDF page at 0.5 scale to match
+		// the viewer's thumbnail downsample factor.
+		viewer.rasterizeThumbnail = async (_sn, pageNumber) => {
+			const page = await pdfDoc.getPage(pageNumber);
+			const vp = page.getViewport({ scale: 0.5 });
+			const canvas = activeWindow.document.createElement('canvas');
+			canvas.width = Math.round(vp.width);
+			canvas.height = Math.round(vp.height);
+			const ctx = canvas.getContext('2d');
+			if (!ctx) throw new Error('Could not get 2d context');
+			await page.render({ canvasContext: ctx, viewport: vp }).promise;
+			return canvas.toDataURL('image/png');
+		};
+
 		viewer.noteObject = markNote;
 		return true;
 	} catch (err) {

@@ -807,6 +807,18 @@ export class SupernoteViewerElement extends HTMLElement {
         return imageDataUrl;
     };
 
+    // Thumbnail equivalent of rasterizePage. Separate so hosts that override
+    // rasterizePage, such as PDF-backed views, need not reimplement thumbnail
+    // scaling or rasterize every page at full resolution. Hosts without bitmap
+    // layers get blank thumbnails unless they override this hook. This fixes
+    // the bug where full-page views worked but sidebar thumbnails stayed empty.
+    rasterizeThumbnail: (sn: SupernoteX, pageNumber: number) => Promise<string> = async (sn, pageNumber) => {
+        const [imageDataUrl] = await new ImageConverter().convertToImages(
+            sn, [pageNumber], SupernoteViewerElement.THUMBNAIL_SCALE, this.vectorInk,
+        );
+        return imageDataUrl;
+    };
+
     // Overridable for the same reason rasterizePage is - the write-on
     // animation's background bases and optional bitmap-only text/Digest
     // overlays go through the same real ImageConverter/Worker pipeline.
@@ -1798,9 +1810,7 @@ export class SupernoteViewerElement extends HTMLElement {
         const item = this.thumbItems[index];
         if (!item || item.imgEl.src) return;
         try {
-            const [dataUrl] = await new ImageConverter().convertToImages(
-                sn, [index + 1], SupernoteViewerElement.THUMBNAIL_SCALE,
-            );
+            const dataUrl = await this.rasterizeThumbnail(sn, index + 1);
             fillSidebarThumbnail(item, dataUrl);
         } catch (err) {
             console.error(`supernote-viewer: page ${index + 1}'s thumbnail failed to load`, err);
