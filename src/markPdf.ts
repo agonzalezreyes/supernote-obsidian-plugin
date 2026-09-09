@@ -15,20 +15,14 @@ interface ImageBounds {
 	height: number;
 }
 
+// `mark.footer.PAGE` keys are 1-indexed PDF page numbers. `mark.pages` uses
+// these keys in numeric order, so keep this list sorted by page number rather
+// than by file offset. Offsets can change when pages are edited and saved.
 function getMarkedPdfPages(mark: SupernoteX): number[] {
-	const entries = Object.entries(mark.footer.PAGE)
-		.map(([page, offset]) => ({
-			pageNumber: Number.parseInt(page, 10),
-			offset: Number.parseInt(offset, 10),
-		}))
-		.filter((entry) => Number.isFinite(entry.pageNumber) && entry.pageNumber > 0)
-		.sort((a, b) => {
-			const left = Number.isFinite(a.offset) ? a.offset : Number.MAX_SAFE_INTEGER;
-			const right = Number.isFinite(b.offset) ? b.offset : Number.MAX_SAFE_INTEGER;
-			return left - right;
-		});
-
-	return entries.map((entry) => entry.pageNumber);
+	return Object.keys(mark.footer.PAGE)
+		.map((page) => Number.parseInt(page, 10))
+		.filter((pageNumber) => Number.isFinite(pageNumber) && pageNumber > 0)
+		.sort((a, b) => a - b);
 }
 
 function alphaBounds(rgba: Uint8Array, width: number, height: number): ImageBounds | null {
